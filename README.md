@@ -235,9 +235,28 @@ Controllers → Services → DbContext → Database
 | **Validation** | ✅ FluentValidation + iş kuralları |
 | **Tekrarlayan Toplantılar** | ✅ Exception dates ile |
 | **API Tasarımı** | ✅ RESTful, standart response |
-| **Git History** | ✅ 8 incremental commit |
 
 ---
+
+---
+
+### 📦 Postman
+
+- `MeetingRoomReservation.postman_collection.json`
+- `MeetingRoomReservation.postman_environment.json`
+
+### 🔹 Kullanım
+
+1. Postman’i açın
+2. **Import** → Collection dosyasını seçin
+3. Tekrar **Import** → Environment dosyasını seçin
+4. Sağ üstten environment olarak `MeetingRoomReservation` seçin
+5. API’yi çalıştırmadan önce uygulamanın ayakta olduğundan emin olun
+
+Base URL varsayılan olarak: https://localhost:7195/
+
+---
+
 
 ## 👤 Geliştirici
 
