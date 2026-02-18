@@ -33,7 +33,7 @@ cd meeting-room-reservation
 
 2. `appsettings.json` dosyasında connection string'i güncelleyin:
 ```json
-"DefaultConnection": "Server=YOUR_SERVER;Database=MeetingRoomDB;Trusted_Connection=True;TrustServerCertificate=True;"
+"DefaultConnection": "Server=YOUR_SERVER;Database=MeetingRoomDB2;Trusted_Connection=True;TrustServerCertificate=True;"
 ```
 
 3. Veritabanını oluşturun:
@@ -64,7 +64,7 @@ Case study'de iş kurallarını kendimiz tasarlamamız istendi.
 ### 2. Rezervasyon Süreleri
 - ⏱️ **Minimum:** 15 dakika (çok kısa toplantılar verimsiz)
 - ⏱️ **Maksimum:** 8 saat (tüm gün rezervasyonu diğerlerini engeller)
-- 📅 **Geçmiş tarih:** İZİN YOK
+- 📅 **Geçmiş tarih:** Geçmiş tarihe rezervasyon oluşturulamaz.
 - 📅 **Maksimum gelecek:** 3 ay (belirsizlik azaltmak için)
 
 ### 3. İptal Politikası
@@ -75,13 +75,10 @@ Case study'de iş kurallarını kendimiz tasarlamamız istendi.
 ### 4. Kapasite Kontrolü
 👥 **Kural:** Katılımcı sayısı oda kapasitesini AŞAMAZ (hard limit).
 
-**Gerekçe:** Güvenlik (yangın yönetmelikleri) ve konfor.
-
 **Davranış:** Hata döner, geçiş yok.
 
 ### 5. Kullanıcı Kısıtlamaları
 👤 **Kural:** Bir kullanıcı aynı anda farklı odalarda bile çakışan rezervasyon yapamaz.
-
 **Gerekçe:** Fiziksel kısıt - bir kişi iki yerde olamaz.
 
 ---
@@ -129,6 +126,15 @@ Case study özel zorluğu: "Her Pazartesi 10:00-11:00, 8 hafta, 3. hafta tatil"
 | Floor | int | Kat |
 | Equipment | nvarchar(500) | Virgülle ayrılmış |
 | IsActive | bit | Soft delete |
+| CreatedDate | DateTime | Oluşturulma DateTime |
+| ModifiedDate | DateTime | Güncelleme DateTime |
+
+### Room Equipments
+| Kolon | Tip | Açıklama |
+|-------|-----|----------|
+| EquipmentId | int | PK |
+| RoomId | int | PK |
+
 
 ### Reservations
 | Kolon | Tip | Açıklama |
@@ -138,9 +144,15 @@ Case study özel zorluğu: "Her Pazartesi 10:00-11:00, 8 hafta, 3. hafta tatil"
 | RecurringGroupId | int? | FK → RecurringGroups |
 | UserName | nvarchar(100) | |
 | Title | nvarchar(200) | |
+| ParticipantCount | int | Katılımcı Sayısı|
 | StartTime | datetime2 | Indexed |
 | EndTime | datetime2 | Indexed |
 | IsCancelled | bit | Soft delete |
+| CreatedDate | DateTime | Oluşturulma DateTime |
+| ModifiedDate | DateTime | Güncelleme DateTime |
+
+
+
 
 **Index:** `(RoomId, StartTime, EndTime)` - Çakışma kontrolü için
 
@@ -151,25 +163,39 @@ Case study özel zorluğu: "Her Pazartesi 10:00-11:00, 8 hafta, 3. hafta tatil"
 | Pattern | nvarchar(50) | Weekly/Daily/Monthly |
 | Interval | int | 1=her hafta |
 | DayOfWeek | nvarchar(20) | Monday, Tuesday... |
-| ExceptionDates | nvarchar(2000) | "2025-03-10,..." |
+| StartTime | datetime2 | Indexed |
+| EndTime | datetime2 | Indexed |
+| CreatedDate | DateTime | Oluşturulma DateTime |
 
-**Seed Data:** 3 örnek oda otomatik eklenir.
+### RecurringGroupExceptionDates
+| Kolon | Tip | Açıklama |
+|-------|-----|----------|
+| Id | int | PK |
+| RecurringGroupId | int| Tekrayan Toplantı |
+| ExceptionDate | DateTime | İstisnaTarihi |
 
 ---
 
 ```mermaid
-
 erDiagram
-
     ROOMS {
         int Id PK
         nvarchar Name
         int Capacity
         int Floor
-        nvarchar Equipment
         bit IsActive
         datetime CreatedDate
         datetime ModifiedDate
+    }
+
+    EQUIPMENTS {
+        int Id PK
+        nvarchar Name
+    }
+
+    ROOMEQUIPMENTS {
+        int RoomId FK
+        int EquipmentId FK
     }
 
     RESERVATIONS {
@@ -181,7 +207,6 @@ erDiagram
         nvarchar Description
         datetime StartTime
         datetime EndTime
-        int ParticipantCount
         bit IsCancelled
         datetime CreatedDate
         datetime ModifiedDate
@@ -194,12 +219,21 @@ erDiagram
         nvarchar DayOfWeek
         datetime StartDate
         datetime EndDate
-        nvarchar ExceptionDates
         datetime CreatedDate
     }
 
+    RECURRINGGROUPEXCEPTIONDATES {
+        int Id PK
+        int RecurringGroupId FK
+        datetime ExceptionDate
+    }
+
+
+    ROOMS ||--o{ ROOMEQUIPMENTS : "has"
+    EQUIPMENTS ||--o{ ROOMEQUIPMENTS : "belongs to"
     ROOMS ||--o{ RESERVATIONS : "1 - N"
-    RECURRINGGROUPS ||--o{ RESERVATIONS : "1 - N (Optional)"
+    RECURRINGGROUPS ||--o{ RESERVATIONS : "1 - N"
+    RECURRINGGROUPS ||--o{ RECURRINGGROUPEXCEPTIONDATES : "has exceptions"
 ```
 ### 📌 Veri Modeli Notları
 
@@ -249,11 +283,6 @@ erDiagram
 - **Input Validation:** FluentValidation
 - **Exception Handling:** Global middleware
 - **HTTPS:** Development'ta otomatik
-
-**Uygulanmadı (basitlik için):**
-- Authentication/Authorization
-- Rate limiting
-
 ---
 
 ## 🏗️ Mimari
@@ -270,35 +299,10 @@ Controllers → Services → DbContext → Database
 
 ---
 
-## 📝 Varsayımlar
-
-1. **Auth:** Kullanıcı adı string (JWT yok)
-2. **Equipment:** Virgülle ayrılmış string (normalizasyon yok)
-3. **Timezone:** Local time (UTC değil)
-4. **Pagination:** Yok (küçük dataset varsayımı)
-
----
-
-## 🎯 Değerlendirme Kriterleri Karşılama
-
-| Kriter | Uygulama |
-|--------|----------|
-| **Veritabanı Tasarımı** | ✅ Normalize, indexler, foreign keys, seed data |
-| **Clean Code** | ✅ SOLID, service layer, anlamlı isimler |
-| **İş Kuralları** | ✅ 5 kural + dokümantasyon |
-| **Exception Handling** | ✅ Global middleware |
-| **Validation** | ✅ FluentValidation + iş kuralları |
-| **Tekrarlayan Toplantılar** | ✅ Exception dates ile |
-| **API Tasarımı** | ✅ RESTful, standart response |
-
----
-
----
-
 ### 📦 Postman
 
 - `MeetingRoomReservation.postman_collection.json`
-- `MeetingRoomReservation.postman_environment.json`
+- `MeetingRoomReservationV3.postman_environment.json`
 
 ### 🔹 Kullanım
 
