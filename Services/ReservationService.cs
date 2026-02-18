@@ -19,10 +19,30 @@ namespace MeetingRoomReservation.API.Services
             _context = context;
         }
 
-        public async Task<List<ReservationDto>> GetAllReservationsAsync()
+        public async Task<List<ReservationDto>> GetAllReservationsAsync(
+           int? roomId = null,
+           string userName = null,
+           DateTime? startDate = null,
+           DateTime? endDate = null)
         {
-            var reservations = await _context.Reservations
+            var query = _context.Reservations
                 .Include(r => r.Room)
+                .AsQueryable();
+
+            // Filtreleme
+            if (roomId.HasValue)
+                query = query.Where(r => r.RoomId == roomId.Value);
+
+            if (!string.IsNullOrEmpty(userName))
+                query = query.Where(r => r.UserName.Contains(userName));
+
+            if (startDate.HasValue)
+                query = query.Where(r => r.StartTime >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(r => r.StartTime <= endDate.Value);
+
+            var reservations = await query
                 .OrderByDescending(r => r.StartTime)
                 .ToListAsync();
 

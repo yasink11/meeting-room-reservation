@@ -7,7 +7,11 @@ namespace MeetingRoomReservation.API.Services.Interfaces
 {
     public interface IReservationService
     {
-        Task<List<ReservationDto>> GetAllReservationsAsync();
+        Task<List<ReservationDto>> GetAllReservationsAsync(
+      int? roomId = null,
+      string userName = null,
+      DateTime? startDate = null,
+      DateTime? endDate = null);
         Task<ReservationDto> GetReservationByIdAsync(int id);
         Task<ReservationDto> CreateReservationAsync(CreateReservationDto dto);
         Task<List<ReservationDto>> CreateRecurringReservationAsync(CreateRecurringReservationDto dto);

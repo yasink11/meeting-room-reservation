@@ -1,8 +1,9 @@
-using MeetingRoomReservation.API.Services;
-using MeetingRoomReservation.API.Services.Interfaces;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using MeetingRoomReservation.API.Data;
+using MeetingRoomReservation.API.Middleware;
+using MeetingRoomReservation.API.Services;
+using MeetingRoomReservation.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -39,6 +40,8 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+// Global Exception Handler
+app.UseMiddleware<GlobalExceptionHandler>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
