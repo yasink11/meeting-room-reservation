@@ -109,5 +109,17 @@ namespace MeetingRoomReservation.API.Controllers
                 return StatusCode(500, ApiResponse<object>.FailResult("Bir hata oluştu", new System.Collections.Generic.List<string> { ex.Message }));
             }
         }
+
+        // GET: api/rooms/available?start=2025-03-03T10:00:00&end=2025-03-03T11:00:00
+        [HttpGet("available")]
+        public async Task<IActionResult> GetAvailableRooms([FromQuery] DateTime start, [FromQuery] DateTime end)
+        {
+            if (start >= end)
+                return BadRequest(ApiResponse<object>.FailResult("Başlangıç tarihi bitiş tarihi önce olmalıdır"));
+
+            var rooms = await _roomService.GetAvailableRoomsAsync(start, end);
+            return Ok(ApiResponse<object>.SuccessResult(rooms, "Müsait odalar getirildi"));
+        }
     }
+
 }

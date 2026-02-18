@@ -11,5 +11,7 @@ namespace MeetingRoomReservation.API.Services.Interfaces
         Task<RoomDto> CreateRoomAsync(CreateRoomDto dto);
         Task<RoomDto> UpdateRoomAsync(int id, UpdateRoomDto dto);
         Task<bool> DeleteRoomAsync(int id);
+
+        Task<List<RoomDto>> GetAvailableRoomsAsync(DateTime start, DateTime end);
     }
 }
