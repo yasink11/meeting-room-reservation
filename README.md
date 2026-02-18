@@ -216,6 +216,7 @@ erDiagram
 ### Rooms
 - `GET /api/rooms` - Tüm odalar
 - `GET /api/rooms/{id}` - Tekil oda
+- `GET /api/rooms/available?start={datetime}&end={datetime}` - Müsait odaları listele
 - `POST /api/rooms` - Oda oluştur
 - `PUT /api/rooms/{id}` - Oda güncelle
 - `DELETE /api/rooms/{id}` - Oda sil (soft)
