@@ -19,12 +19,9 @@ namespace MeetingRoomReservation.API.Services
             _context = context;
         }
 
-        // DB'den gelen DateTime'ı UTC olarak işaretle
         private static DateTime AsUtc(DateTime dt) =>
             DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
-        // Client'tan gelen DateTime'ı UTC'ye normalize et
-        // Client "Z" gönderdiyse zaten UTC'dir, local gönderdiyse convert edilir
         private static DateTime ToUtc(DateTime dt) =>
             dt.Kind == DateTimeKind.Utc ? dt : dt.ToUniversalTime();
 
@@ -42,14 +39,20 @@ namespace MeetingRoomReservation.API.Services
             RecurringGroupId = r.RecurringGroupId
         };
 
-        public async Task<List<ReservationDto>> GetAllReservationsAsync(
+        public async Task<PagedResult<ReservationDto>> GetAllReservationsAsync(
             int? roomId = null,
             string userName = null,
             DateTime? startDate = null,
-            DateTime? endDate = null)
+            DateTime? endDate = null,
+            int page = 1,
+            int pageSize = 20)
         {
+            pageSize = Math.Clamp(pageSize, 1, 100);
+            page = Math.Max(page, 1);
+
             var query = _context.Reservations
                 .Include(r => r.Room)
+                .Where(r => !r.IsCancelled)
                 .AsQueryable();
 
             if (roomId.HasValue)
@@ -58,18 +61,27 @@ namespace MeetingRoomReservation.API.Services
             if (!string.IsNullOrEmpty(userName))
                 query = query.Where(r => r.UserName.Contains(userName));
 
-            // Filtre tarihlerini de UTC'ye normalize et
             if (startDate.HasValue)
                 query = query.Where(r => r.StartTime >= ToUtc(startDate.Value));
 
             if (endDate.HasValue)
                 query = query.Where(r => r.StartTime <= ToUtc(endDate.Value));
 
-            var reservations = await query
+            var totalCount = await query.CountAsync();
+
+            var items = await query
                 .OrderByDescending(r => r.StartTime)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return reservations.Select(MapToDto).ToList();
+            return new PagedResult<ReservationDto>
+            {
+                Items = items.Select(MapToDto).ToList(),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
 
         public async Task<ReservationDto> GetReservationByIdAsync(int id)
@@ -93,7 +105,6 @@ namespace MeetingRoomReservation.API.Services
             if (dto.ParticipantCount > room.Capacity)
                 throw new Exception($"Katılımcı sayısı ({dto.ParticipantCount}) oda kapasitesini ({room.Capacity}) aşıyor");
 
-            // Client'tan gelen tarihleri UTC'ye normalize et
             var startUtc = ToUtc(dto.StartTime);
             var endUtc = ToUtc(dto.EndTime);
 
@@ -173,7 +184,6 @@ namespace MeetingRoomReservation.API.Services
 
             for (int i = 0; i < dto.WeekCount; i++)
             {
-                // Exception tarihlerini UTC date olarak karşılaştır
                 if (!exceptionDatesList.Any(ed => ed == currentStart.Date))
                 {
                     var currentEnd = currentStart + duration;
@@ -229,7 +239,6 @@ namespace MeetingRoomReservation.API.Services
             if (reservation == null)
                 return null;
 
-            // Zaman karşılaştırmasında UTC kullan
             if (AsUtc(reservation.StartTime).AddHours(-1) < DateTime.UtcNow)
                 throw new Exception("Toplantıdan 1 saat öncesine kadar güncelleyebilirsiniz");
 

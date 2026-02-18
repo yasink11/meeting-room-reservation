@@ -17,11 +17,11 @@ namespace MeetingRoomReservation.API.Controllers
             _roomService = roomService;
         }
 
-        // GET: api/rooms
+        // GET: api/rooms?page=1&pageSize=20
         [HttpGet]
-        public async Task<IActionResult> GetAllRooms()
+        public async Task<IActionResult> GetAllRooms(int page = 1, int pageSize = 20)
         {
-            var rooms = await _roomService.GetAllRoomsAsync();
+            var rooms = await _roomService.GetAllRoomsAsync(page, pageSize);
             return Ok(ApiResponse<object>.SuccessResult(rooms, "Odalar başarıyla getirildi"));
         }
 
@@ -76,7 +76,7 @@ namespace MeetingRoomReservation.API.Controllers
             return Ok(ApiResponse<object>.SuccessResult(null, "Oda başarıyla silindi"));
         }
 
-        // GET: api/rooms/available?start=2025-03-03T10:00:00&end=2025-03-03T11:00:00
+        // GET: api/rooms/available?start=2025-03-03T10:00:00Z&end=2025-03-03T11:00:00Z
         [HttpGet("available")]
         public async Task<IActionResult> GetAvailableRooms([FromQuery] DateTime start, [FromQuery] DateTime end)
         {

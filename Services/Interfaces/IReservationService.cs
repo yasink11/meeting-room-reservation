@@ -7,11 +7,13 @@ namespace MeetingRoomReservation.API.Services.Interfaces
 {
     public interface IReservationService
     {
-        Task<List<ReservationDto>> GetAllReservationsAsync(
-      int? roomId = null,
-      string userName = null,
-      DateTime? startDate = null,
-      DateTime? endDate = null);
+        Task<PagedResult<ReservationDto>> GetAllReservationsAsync(
+            int? roomId = null,
+            string userName = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null,
+            int page = 1,
+            int pageSize = 20);
         Task<ReservationDto> GetReservationByIdAsync(int id);
         Task<ReservationDto> CreateReservationAsync(CreateReservationDto dto);
         Task<List<ReservationDto>> CreateRecurringReservationAsync(CreateRecurringReservationDto dto);

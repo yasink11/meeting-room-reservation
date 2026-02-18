@@ -17,12 +17,20 @@ namespace MeetingRoomReservation.API.Controllers
             _reservationService = reservationService;
         }
 
-        // GET: api/reservations?roomId=1&userName=Ahmet&startDate=2025-02-20&endDate=2025-02-28
+        // GET: api/reservations?roomId=1&userName=Ahmet&startDate=2025-02-20&endDate=2025-02-28&page=1&pageSize=20
         [HttpGet]
-        public async Task<IActionResult> GetAllReservations(int? roomId, string? userName, DateTime? startDate, DateTime? endDate)
+        public async Task<IActionResult> GetAllReservations(
+            int? roomId,
+            string? userName,
+            DateTime? startDate,
+            DateTime? endDate,
+            int page = 1,
+            int pageSize = 20)
         {
-            var reservations = await _reservationService.GetAllReservationsAsync(roomId, userName, startDate, endDate);
-            return Ok(ApiResponse<object>.SuccessResult(reservations, "Rezervasyonlar başarıyla getirildi"));
+            var result = await _reservationService.GetAllReservationsAsync(
+                roomId, userName, startDate, endDate, page, pageSize);
+
+            return Ok(ApiResponse<object>.SuccessResult(result, "Rezervasyonlar başarıyla getirildi"));
         }
 
         // GET: api/reservations/5
@@ -88,7 +96,7 @@ namespace MeetingRoomReservation.API.Controllers
             return Ok(ApiResponse<object>.SuccessResult(null, "Rezervasyon başarıyla iptal edildi"));
         }
 
-        // GET: api/reservations/conflicts?roomId=1&start=2025-02-20T10:00:00&end=2025-02-20T12:00:00
+        // GET: api/reservations/conflicts?roomId=1&start=2025-02-20T10:00:00Z&end=2025-02-20T12:00:00Z
         [HttpGet("conflicts")]
         public async Task<IActionResult> GetConflictingReservations(
             [FromQuery] int roomId,
