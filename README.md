@@ -157,6 +157,60 @@ Case study özel zorluğu: "Her Pazartesi 10:00-11:00, 8 hafta, 3. hafta tatil"
 
 ---
 
+```mermaid
+
+erDiagram
+
+    ROOMS {
+        int Id PK
+        nvarchar Name
+        int Capacity
+        int Floor
+        nvarchar Equipment
+        bit IsActive
+        datetime CreatedDate
+        datetime ModifiedDate
+    }
+
+    RESERVATIONS {
+        int Id PK
+        int RoomId FK
+        int RecurringGroupId FK "Nullable"
+        nvarchar UserName
+        nvarchar Title
+        nvarchar Description
+        datetime StartTime
+        datetime EndTime
+        int ParticipantCount
+        bit IsCancelled
+        datetime CreatedDate
+        datetime ModifiedDate
+    }
+
+    RECURRINGGROUPS {
+        int Id PK
+        nvarchar Pattern
+        int Interval
+        nvarchar DayOfWeek
+        datetime StartDate
+        datetime EndDate
+        nvarchar ExceptionDates
+        datetime CreatedDate
+    }
+
+    ROOMS ||--o{ RESERVATIONS : "1 - N"
+    RECURRINGGROUPS ||--o{ RESERVATIONS : "1 - N (Optional)"
+```
+### 📌 Veri Modeli Notları
+
+- `RecurringGroupId` nullable’dır. Tek seferlik rezervasyonlarda NULL olabilir.
+- Fiziksel silme yapılmaz:
+  - Rooms → `IsActive`
+  - Reservations → `IsCancelled`
+- Zaman çakışma kontrolü `(RoomId, StartTime, EndTime)` kombinasyonu üzerinden yapılır.
+- `ModifiedDate` alanları audit amaçlıdır.
+
+
 ## 🌐 API Endpoints
 
 ### Rooms
@@ -265,3 +319,6 @@ Yasin Karaçam
 **GitHub:** [https://github.com/yasink11/meeting-room-reservation](https://github.com/yasink11/meeting-room-reservation)
 
 **Geliştirme Tarihi:18 Şubat 2025
+
+
+
