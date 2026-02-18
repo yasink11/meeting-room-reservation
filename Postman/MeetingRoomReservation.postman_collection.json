@@ -1,0 +1,339 @@
+{
+  "info": {
+    "_postman_id": "4e82562b-5e24-418e-a61a-3b5d002a40d1",
+    "name": "MeetingRoomReservation API – Local",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "25768005",
+    "_collection_link": "https://go.postman.co/collection/25768005-4e82562b-5e24-418e-a61a-3b5d002a40d1?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "GetAllReservations",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/Reservations",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Reservations"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Filter Reservations",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/Reservations?roomId=2&userName=Ay%C5%9Fe%20Demir&startDate=2026-03-10T09%3A00%3A00&endDate=2026-03-10T09%3A30%3A00",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Reservations"
+          ],
+          "query": [
+            {
+              "key": "roomId",
+              "value": "2"
+            },
+            {
+              "key": "userName",
+              "value": "Ay%C5%9Fe%20Demir"
+            },
+            {
+              "key": "startDate",
+              "value": "2026-03-10T09%3A00%3A00"
+            },
+            {
+              "key": "endDate",
+              "value": "2026-03-10T09%3A30%3A00"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Reservation By Id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/Reservations/1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Reservations",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Reservation",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"roomId\": 2,\r\n  \"userName\": \"Test Rezervasyonu\",\r\n  \"title\": \"Test Rezervasyonu\",\r\n  \"description\": \"Test Rezervasyonu\",\r\n  \"startTime\": \"2026-02-19T20:01:35.560Z\",\r\n  \"endTime\": \"2026-02-19T22:30:35.560Z\",\r\n  \"participantCount\": 2\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/Reservations",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Reservations"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Reservation",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"title\": \"Test Rezervasyonu Update\",\r\n  \"description\": \"Test Rezervasyonu\",\r\n  \"startTime\": \"2026-02-20T20:01:35.56Z\",\r\n   \"endTime\": \"2026-02-20T22:30:35.56Z\",\r\n  \"participantCount\": 4\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/Reservations/2",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Reservations",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Reservation",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/Reservations/1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Reservations",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Recurring Reservation",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"roomId\": 2,\r\n  \"userName\": \"Ayşe Demir\",\r\n  \"title\": \"Haftalık Standup\",\r\n  \"description\": \"Takım standup toplantısı\",\r\n  \"startTime\": \"2026-02-18T15:00:00Z\",\r\n  \"endTime\": \"2026-02-18T16:00:00Z\",\r\n  \"participantCount\": 2,\r\n  \"pattern\": \"Weekly\",\r\n  \"interval\": 1,\r\n  \"dayOfWeek\": \"Monday\",\r\n  \"weekCount\": 4,\r\n  \"exceptionDates\": \"2026-03-04T15:00:00Z,2026-03-11T15:00:00Z\"\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/Reservations/recurring",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Reservations",
+            "recurring"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Check Reservation Conflicts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/Reservations/conflicts?roomId=5&start=2026-02-20T10:00:00Z&end=2026-02-20T11:00:00Z",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Reservations",
+            "conflicts"
+          ],
+          "query": [
+            {
+              "key": "roomId",
+              "value": "5"
+            },
+            {
+              "key": "start",
+              "value": "2026-02-20T10:00:00Z"
+            },
+            {
+              "key": "end",
+              "value": "2026-02-20T11:00:00Z"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Rooms",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/Rooms",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Rooms"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Room By Id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/Rooms/1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Rooms",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Room",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"name\": \"Test Odası \",\r\n  \"capacity\": 3,\r\n  \"floor\": 0,\r\n  \"equipment\": [\r\n    \"Televizyon,Projeksiyon,Beyaz Tahta\"\r\n  ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/Rooms",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Rooms"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Room",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"name\": \"Toplantı Odası A Update Edildi\",\r\n    \"capacity\": 10,\r\n    \"floor\": 1,\r\n        \"equipment\": [\r\n            \"Projeksiyon\",\r\n            \"Beyaz Tahta\",\r\n            \"Telefon\",\r\n            \"Tablet\"\r\n         \r\n        ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/Rooms/1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Rooms",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Room",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/Rooms/8",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "Rooms",
+            "8"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
