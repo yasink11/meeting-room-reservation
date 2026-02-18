@@ -19,7 +19,7 @@ namespace MeetingRoomReservation.API.Validators
                 .GreaterThanOrEqualTo(0).WithMessage("Kat numarası 0'dan küçük olamaz")
                 .LessThanOrEqualTo(50).WithMessage("Kat numarası en fazla 50 olabilir");
 
-            RuleFor(x => x.Equipment)
+            RuleFor(x => x.Equipments)
                 .NotNull().WithMessage("Donanım listesi boş olamaz");
         }
     }

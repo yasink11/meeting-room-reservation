@@ -9,7 +9,7 @@ namespace MeetingRoomReservation.API.DTOs
         public string Name { get; set; }
         public int Capacity { get; set; }
         public int Floor { get; set; }
-        public List<string> Equipment { get; set; }
+        public List<string> Equipments { get; set; }
     }
 
     public class CreateRoomDto
@@ -17,7 +17,7 @@ namespace MeetingRoomReservation.API.DTOs
         public string Name { get; set; }
         public int Capacity { get; set; }
         public int Floor { get; set; }
-        public List<string> Equipment { get; set; }
+        public List<string> Equipments { get; set; }
     }
 
     public class UpdateRoomDto
@@ -25,6 +25,6 @@ namespace MeetingRoomReservation.API.DTOs
         public string Name { get; set; }
         public int Capacity { get; set; }
         public int Floor { get; set; }
-        public List<string> Equipment { get; set; }
+        public List<string> Equipments { get; set; }
     }
 }

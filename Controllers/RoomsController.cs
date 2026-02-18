@@ -21,93 +21,59 @@ namespace MeetingRoomReservation.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllRooms()
         {
-            try
-            {
-                var rooms = await _roomService.GetAllRoomsAsync();
-                return Ok(ApiResponse<object>.SuccessResult(rooms, "Odalar başarıyla getirildi"));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ApiResponse<object>.FailResult("Bir hata oluştu", new System.Collections.Generic.List<string> { ex.Message }));
-            }
+            var rooms = await _roomService.GetAllRoomsAsync();
+            return Ok(ApiResponse<object>.SuccessResult(rooms, "Odalar başarıyla getirildi"));
         }
 
         // GET: api/rooms/5
         [HttpGet("{id}")]
         public async Task<IActionResult> GetRoomById(int id)
         {
-            try
-            {
-                var room = await _roomService.GetRoomByIdAsync(id);
+            var room = await _roomService.GetRoomByIdAsync(id);
 
-                if (room == null)
-                    return NotFound(ApiResponse<object>.FailResult("Oda bulunamadı"));
+            if (room == null)
+                return NotFound(ApiResponse<object>.FailResult("Oda bulunamadı"));
 
-                return Ok(ApiResponse<object>.SuccessResult(room, "Oda başarıyla getirildi"));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ApiResponse<object>.FailResult("Bir hata oluştu", new System.Collections.Generic.List<string> { ex.Message }));
-            }
+            return Ok(ApiResponse<object>.SuccessResult(room, "Oda başarıyla getirildi"));
         }
 
         // POST: api/rooms
         [HttpPost]
         public async Task<IActionResult> CreateRoom([FromBody] CreateRoomDto dto)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ApiResponse<object>.FailResult("Geçersiz veri"));
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<object>.FailResult("Geçersiz veri"));
 
-                var room = await _roomService.CreateRoomAsync(dto);
-                return CreatedAtAction(nameof(GetRoomById), new { id = room.Id }, ApiResponse<object>.SuccessResult(room, "Oda başarıyla oluşturuldu"));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ApiResponse<object>.FailResult("Bir hata oluştu", new System.Collections.Generic.List<string> { ex.Message }));
-            }
+            var room = await _roomService.CreateRoomAsync(dto);
+            return CreatedAtAction(nameof(GetRoomById), new { id = room.Id },
+                ApiResponse<object>.SuccessResult(room, "Oda başarıyla oluşturuldu"));
         }
 
         // PUT: api/rooms/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateRoom(int id, [FromBody] UpdateRoomDto dto)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ApiResponse<object>.FailResult("Geçersiz veri"));
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<object>.FailResult("Geçersiz veri"));
 
-                var room = await _roomService.UpdateRoomAsync(id, dto);
+            var room = await _roomService.UpdateRoomAsync(id, dto);
 
-                if (room == null)
-                    return NotFound(ApiResponse<object>.FailResult("Oda bulunamadı"));
+            if (room == null)
+                return NotFound(ApiResponse<object>.FailResult("Oda bulunamadı"));
 
-                return Ok(ApiResponse<object>.SuccessResult(room, "Oda başarıyla güncellendi"));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ApiResponse<object>.FailResult("Bir hata oluştu", new System.Collections.Generic.List<string> { ex.Message }));
-            }
+            return Ok(ApiResponse<object>.SuccessResult(room, "Oda başarıyla güncellendi"));
         }
 
         // DELETE: api/rooms/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRoom(int id)
         {
-            try
-            {
-                var result = await _roomService.DeleteRoomAsync(id);
+            var result = await _roomService.DeleteRoomAsync(id);
 
-                if (!result)
-                    return NotFound(ApiResponse<object>.FailResult("Oda bulunamadı"));
+            if (!result)
+                return NotFound(ApiResponse<object>.FailResult("Oda bulunamadı"));
 
-                return Ok(ApiResponse<object>.SuccessResult(null, "Oda başarıyla silindi"));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ApiResponse<object>.FailResult("Bir hata oluştu", new System.Collections.Generic.List<string> { ex.Message }));
-            }
+            return Ok(ApiResponse<object>.SuccessResult(null, "Oda başarıyla silindi"));
         }
 
         // GET: api/rooms/available?start=2025-03-03T10:00:00&end=2025-03-03T11:00:00
@@ -115,11 +81,10 @@ namespace MeetingRoomReservation.API.Controllers
         public async Task<IActionResult> GetAvailableRooms([FromQuery] DateTime start, [FromQuery] DateTime end)
         {
             if (start >= end)
-                return BadRequest(ApiResponse<object>.FailResult("Başlangıç tarihi bitiş tarihi önce olmalıdır"));
+                return BadRequest(ApiResponse<object>.FailResult("Başlangıç tarihi bitiş tarihinden önce olmalıdır"));
 
             var rooms = await _roomService.GetAvailableRoomsAsync(start, end);
             return Ok(ApiResponse<object>.SuccessResult(rooms, "Müsait odalar getirildi"));
         }
     }
-
 }
