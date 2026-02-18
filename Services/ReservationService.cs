@@ -29,7 +29,6 @@ namespace MeetingRoomReservation.API.Services
                 .Include(r => r.Room)
                 .AsQueryable();
 
-            // Filtreleme
             if (roomId.HasValue)
                 query = query.Where(r => r.RoomId == roomId.Value);
 
@@ -87,16 +86,15 @@ namespace MeetingRoomReservation.API.Services
 
         public async Task<ReservationDto> CreateReservationAsync(CreateReservationDto dto)
         {
-            // İş Kuralı 1: Oda var mı kontrol et
+
             var room = await _context.Rooms.FindAsync(dto.RoomId);
             if (room == null)
                 throw new Exception("Oda bulunamadı");
 
-            // İş Kuralı 2: Kapasite kontrolü
             if (dto.ParticipantCount > room.Capacity)
                 throw new Exception($"Katılımcı sayısı ({dto.ParticipantCount}) oda kapasitesini ({room.Capacity}) aşıyor");
 
-            // İş Kuralı 3: Çakışan rezervasyon kontrolü
+
             var hasConflict = await _context.Reservations
                 .AnyAsync(r => r.RoomId == dto.RoomId &&
                               r.StartTime < dto.EndTime &&
@@ -105,7 +103,6 @@ namespace MeetingRoomReservation.API.Services
             if (hasConflict)
                 throw new Exception("Bu saatte oda için başka bir rezervasyon var");
 
-            // İş Kuralı 4: Kullanıcı aynı saatte başka rezervasyon yapamaz
             var userHasConflict = await _context.Reservations
                 .AnyAsync(r => r.UserName == dto.UserName &&
                               r.StartTime < dto.EndTime &&
@@ -146,7 +143,15 @@ namespace MeetingRoomReservation.API.Services
 
         public async Task<List<ReservationDto>> CreateRecurringReservationAsync(CreateRecurringReservationDto dto)
         {
-            // Recurring Group oluştur
+
+            var room = await _context.Rooms.FindAsync(dto.RoomId);
+            if (room == null)
+                throw new Exception("Oda bulunamadı");
+
+            if (dto.ParticipantCount > room.Capacity)
+                throw new Exception($"Katılımcı sayısı ({dto.ParticipantCount}) oda kapasitesini ({room.Capacity}) aşıyor");
+
+
             var recurringGroup = new RecurringGroup
             {
                 Pattern = dto.Pattern,
@@ -161,22 +166,42 @@ namespace MeetingRoomReservation.API.Services
             _context.RecurringGroups.Add(recurringGroup);
             await _context.SaveChangesAsync();
 
-            // Exception tarihlerini parse et
+
             var exceptionDatesList = string.IsNullOrEmpty(dto.ExceptionDates)
                 ? new List<DateTime>()
                 : dto.ExceptionDates.Split(',')
                     .Select(d => DateTime.Parse(d.Trim()))
                     .ToList();
 
-            // Her hafta için rezervasyon oluştur
+
             var reservations = new List<Reservation>();
             var currentDate = dto.StartTime;
 
             for (int i = 0; i < dto.WeekCount; i++)
             {
-                // Exception tarihinde mi kontrol et
+
                 if (!exceptionDatesList.Any(ed => ed.Date == currentDate.Date))
                 {
+                    var endTime = currentDate.AddHours((dto.EndTime - dto.StartTime).TotalHours);
+
+
+                    var hasRoomConflict = await _context.Reservations
+                        .AnyAsync(r => r.RoomId == dto.RoomId &&
+                                      r.StartTime < endTime &&
+                                      r.EndTime > currentDate);
+
+                    if (hasRoomConflict)
+                        throw new Exception($"{currentDate:dd.MM.yyyy} tarihinde bu odada çakışan rezervasyon var");
+
+
+                    var hasUserConflict = await _context.Reservations
+                        .AnyAsync(r => r.UserName == dto.UserName &&
+                                      r.StartTime < endTime &&
+                                      r.EndTime > currentDate);
+
+                    if (hasUserConflict)
+                        throw new Exception($"{currentDate:dd.MM.yyyy} tarihinde kullanıcının başka rezervasyonu var");
+
                     var reservation = new Reservation
                     {
                         RoomId = dto.RoomId,
@@ -184,7 +209,7 @@ namespace MeetingRoomReservation.API.Services
                         Title = dto.Title,
                         Description = dto.Description,
                         StartTime = currentDate,
-                        EndTime = currentDate.AddHours((dto.EndTime - dto.StartTime).TotalHours),
+                        EndTime = endTime,
                         ParticipantCount = dto.ParticipantCount,
                         RecurringGroupId = recurringGroup.Id,
                         IsCancelled = false,
@@ -194,15 +219,12 @@ namespace MeetingRoomReservation.API.Services
                     reservations.Add(reservation);
                 }
 
-                // Bir sonraki haftaya geç
+      
                 currentDate = currentDate.AddDays(7 * dto.Interval);
             }
 
             _context.Reservations.AddRange(reservations);
             await _context.SaveChangesAsync();
-
-            // Room bilgisini çek
-            var room = await _context.Rooms.FindAsync(dto.RoomId);
 
             return reservations.Select(r => new ReservationDto
             {
@@ -228,15 +250,12 @@ namespace MeetingRoomReservation.API.Services
             if (reservation == null)
                 return null;
 
-            // İş Kuralı: Toplantıdan 1 saat öncesine kadar güncellenebilir
             if (reservation.StartTime.AddHours(-1) < DateTime.Now)
                 throw new Exception("Toplantıdan 1 saat öncesine kadar güncelleyebilirsiniz");
 
-            // Kapasite kontrolü
             if (dto.ParticipantCount > reservation.Room.Capacity)
                 throw new Exception($"Katılımcı sayısı ({dto.ParticipantCount}) oda kapasitesini ({reservation.Room.Capacity}) aşıyor");
 
-            // Çakışma kontrolü (kendi rezervasyonu hariç)
             var hasConflict = await _context.Reservations
                 .AnyAsync(r => r.Id != id &&
                               r.RoomId == reservation.RoomId &&
@@ -277,7 +296,6 @@ namespace MeetingRoomReservation.API.Services
             if (reservation == null)
                 return false;
 
-            // İş Kuralı: Toplantıdan 1 saat öncesine kadar iptal edilebilir
             if (reservation.StartTime.AddHours(-1) < DateTime.Now)
                 throw new Exception("Toplantıdan 1 saat öncesine kadar iptal edebilirsiniz");
 
