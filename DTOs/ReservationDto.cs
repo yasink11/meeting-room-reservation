@@ -2,6 +2,7 @@
 
 namespace MeetingRoomReservation.API.DTOs
 {
+    // UTC olarak döner — JSON'da "Z" suffix'i gelir (örn: "2025-03-10T10:00:00Z")
     public class ReservationDto
     {
         public int Id { get; set; }
@@ -16,6 +17,8 @@ namespace MeetingRoomReservation.API.DTOs
         public int? RecurringGroupId { get; set; }
     }
 
+    // Client UTC gönderir (örn: "2025-03-10T10:00:00Z")
+    // Göndermezse ToUniversalTime() ile normalize edilir
     public class CreateReservationDto
     {
         public int RoomId { get; set; }
@@ -45,10 +48,10 @@ namespace MeetingRoomReservation.API.DTOs
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public int ParticipantCount { get; set; }
-        public string Pattern { get; set; } // "Weekly"
-        public int Interval { get; set; } // 1 = her hafta
-        public string DayOfWeek { get; set; } // "Monday"
-        public int WeekCount { get; set; } // Kaç hafta tekrarlanacak
-        public string ExceptionDates { get; set; } // "2025-03-10,2025-04-15"
+        public string Pattern { get; set; }       // "Weekly"
+        public int Interval { get; set; }          // 1 = her hafta
+        public string DayOfWeek { get; set; }      // "Monday"
+        public int WeekCount { get; set; }         // Kaç hafta tekrarlanacak
+        public string ExceptionDates { get; set; } // "2025-03-10,2025-04-15" (UTC tarihler)
     }
 }

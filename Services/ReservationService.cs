@@ -19,11 +19,34 @@ namespace MeetingRoomReservation.API.Services
             _context = context;
         }
 
+        // DB'den gelen DateTime'ı UTC olarak işaretle
+        private static DateTime AsUtc(DateTime dt) =>
+            DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+
+        // Client'tan gelen DateTime'ı UTC'ye normalize et
+        // Client "Z" gönderdiyse zaten UTC'dir, local gönderdiyse convert edilir
+        private static DateTime ToUtc(DateTime dt) =>
+            dt.Kind == DateTimeKind.Utc ? dt : dt.ToUniversalTime();
+
+        private static ReservationDto MapToDto(Reservation r) => new ReservationDto
+        {
+            Id = r.Id,
+            RoomId = r.RoomId,
+            RoomName = r.Room?.Name,
+            UserName = r.UserName,
+            Title = r.Title,
+            Description = r.Description,
+            StartTime = AsUtc(r.StartTime),
+            EndTime = AsUtc(r.EndTime),
+            ParticipantCount = r.ParticipantCount,
+            RecurringGroupId = r.RecurringGroupId
+        };
+
         public async Task<List<ReservationDto>> GetAllReservationsAsync(
-           int? roomId = null,
-           string userName = null,
-           DateTime? startDate = null,
-           DateTime? endDate = null)
+            int? roomId = null,
+            string userName = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null)
         {
             var query = _context.Reservations
                 .Include(r => r.Room)
@@ -35,29 +58,18 @@ namespace MeetingRoomReservation.API.Services
             if (!string.IsNullOrEmpty(userName))
                 query = query.Where(r => r.UserName.Contains(userName));
 
+            // Filtre tarihlerini de UTC'ye normalize et
             if (startDate.HasValue)
-                query = query.Where(r => r.StartTime >= startDate.Value);
+                query = query.Where(r => r.StartTime >= ToUtc(startDate.Value));
 
             if (endDate.HasValue)
-                query = query.Where(r => r.StartTime <= endDate.Value);
+                query = query.Where(r => r.StartTime <= ToUtc(endDate.Value));
 
             var reservations = await query
                 .OrderByDescending(r => r.StartTime)
                 .ToListAsync();
 
-            return reservations.Select(r => new ReservationDto
-            {
-                Id = r.Id,
-                RoomId = r.RoomId,
-                RoomName = r.Room.Name,
-                UserName = r.UserName,
-                Title = r.Title,
-                Description = r.Description,
-                StartTime = r.StartTime,
-                EndTime = r.EndTime,
-                ParticipantCount = r.ParticipantCount,
-                RecurringGroupId = r.RecurringGroupId
-            }).ToList();
+            return reservations.Select(MapToDto).ToList();
         }
 
         public async Task<ReservationDto> GetReservationByIdAsync(int id)
@@ -69,24 +81,11 @@ namespace MeetingRoomReservation.API.Services
             if (reservation == null)
                 return null;
 
-            return new ReservationDto
-            {
-                Id = reservation.Id,
-                RoomId = reservation.RoomId,
-                RoomName = reservation.Room.Name,
-                UserName = reservation.UserName,
-                Title = reservation.Title,
-                Description = reservation.Description,
-                StartTime = reservation.StartTime,
-                EndTime = reservation.EndTime,
-                ParticipantCount = reservation.ParticipantCount,
-                RecurringGroupId = reservation.RecurringGroupId
-            };
+            return MapToDto(reservation);
         }
 
         public async Task<ReservationDto> CreateReservationAsync(CreateReservationDto dto)
         {
-
             var room = await _context.Rooms.FindAsync(dto.RoomId);
             if (room == null)
                 throw new Exception("Oda bulunamadı");
@@ -94,19 +93,24 @@ namespace MeetingRoomReservation.API.Services
             if (dto.ParticipantCount > room.Capacity)
                 throw new Exception($"Katılımcı sayısı ({dto.ParticipantCount}) oda kapasitesini ({room.Capacity}) aşıyor");
 
+            // Client'tan gelen tarihleri UTC'ye normalize et
+            var startUtc = ToUtc(dto.StartTime);
+            var endUtc = ToUtc(dto.EndTime);
 
             var hasConflict = await _context.Reservations
                 .AnyAsync(r => r.RoomId == dto.RoomId &&
-                              r.StartTime < dto.EndTime &&
-                              r.EndTime > dto.StartTime);
+                               !r.IsCancelled &&
+                               r.StartTime < endUtc &&
+                               r.EndTime > startUtc);
 
             if (hasConflict)
                 throw new Exception("Bu saatte oda için başka bir rezervasyon var");
 
             var userHasConflict = await _context.Reservations
                 .AnyAsync(r => r.UserName == dto.UserName &&
-                              r.StartTime < dto.EndTime &&
-                              r.EndTime > dto.StartTime);
+                               !r.IsCancelled &&
+                               r.StartTime < endUtc &&
+                               r.EndTime > startUtc);
 
             if (userHasConflict)
                 throw new Exception("Bu saatte zaten başka bir rezervasyonunuz var");
@@ -117,33 +121,22 @@ namespace MeetingRoomReservation.API.Services
                 UserName = dto.UserName,
                 Title = dto.Title,
                 Description = dto.Description,
-                StartTime = dto.StartTime,
-                EndTime = dto.EndTime,
+                StartTime = startUtc,
+                EndTime = endUtc,
                 ParticipantCount = dto.ParticipantCount,
                 IsCancelled = false,
-                CreatedDate = DateTime.Now
+                CreatedDate = DateTime.UtcNow
             };
 
             _context.Reservations.Add(reservation);
             await _context.SaveChangesAsync();
 
-            return new ReservationDto
-            {
-                Id = reservation.Id,
-                RoomId = reservation.RoomId,
-                RoomName = room.Name,
-                UserName = reservation.UserName,
-                Title = reservation.Title,
-                Description = reservation.Description,
-                StartTime = reservation.StartTime,
-                EndTime = reservation.EndTime,
-                ParticipantCount = reservation.ParticipantCount
-            };
+            reservation.Room = room;
+            return MapToDto(reservation);
         }
 
         public async Task<List<ReservationDto>> CreateRecurringReservationAsync(CreateRecurringReservationDto dto)
         {
-
             var room = await _context.Rooms.FindAsync(dto.RoomId);
             if (room == null)
                 throw new Exception("Oda bulunamadı");
@@ -151,94 +144,80 @@ namespace MeetingRoomReservation.API.Services
             if (dto.ParticipantCount > room.Capacity)
                 throw new Exception($"Katılımcı sayısı ({dto.ParticipantCount}) oda kapasitesini ({room.Capacity}) aşıyor");
 
+            var startUtc = ToUtc(dto.StartTime);
+            var endUtc = ToUtc(dto.EndTime);
+            var duration = endUtc - startUtc;
+
+            var exceptionDatesList = string.IsNullOrEmpty(dto.ExceptionDates)
+                ? new List<DateTime>()
+                : dto.ExceptionDates.Split(',')
+                    .Select(d => ToUtc(DateTime.Parse(d.Trim())).Date)
+                    .ToList();
 
             var recurringGroup = new RecurringGroup
             {
                 Pattern = dto.Pattern,
                 Interval = dto.Interval,
                 DayOfWeek = dto.DayOfWeek,
-                StartDate = dto.StartTime.Date,
-                EndDate = dto.StartTime.AddDays(dto.WeekCount * 7).Date,
+                StartDate = startUtc.Date,
+                EndDate = startUtc.AddDays(dto.WeekCount * 7).Date,
                 ExceptionDates = dto.ExceptionDates ?? "",
-                CreatedDate = DateTime.Now
+                CreatedDate = DateTime.UtcNow
             };
 
             _context.RecurringGroups.Add(recurringGroup);
             await _context.SaveChangesAsync();
 
-
-            var exceptionDatesList = string.IsNullOrEmpty(dto.ExceptionDates)
-                ? new List<DateTime>()
-                : dto.ExceptionDates.Split(',')
-                    .Select(d => DateTime.Parse(d.Trim()))
-                    .ToList();
-
-
             var reservations = new List<Reservation>();
-            var currentDate = dto.StartTime;
+            var currentStart = startUtc;
 
             for (int i = 0; i < dto.WeekCount; i++)
             {
-
-                if (!exceptionDatesList.Any(ed => ed.Date == currentDate.Date))
+                // Exception tarihlerini UTC date olarak karşılaştır
+                if (!exceptionDatesList.Any(ed => ed == currentStart.Date))
                 {
-                    var endTime = currentDate.AddHours((dto.EndTime - dto.StartTime).TotalHours);
-
+                    var currentEnd = currentStart + duration;
 
                     var hasRoomConflict = await _context.Reservations
                         .AnyAsync(r => r.RoomId == dto.RoomId &&
-                                      r.StartTime < endTime &&
-                                      r.EndTime > currentDate);
+                                       !r.IsCancelled &&
+                                       r.StartTime < currentEnd &&
+                                       r.EndTime > currentStart);
 
                     if (hasRoomConflict)
-                        throw new Exception($"{currentDate:dd.MM.yyyy} tarihinde bu odada çakışan rezervasyon var");
-
+                        throw new Exception($"{currentStart:dd.MM.yyyy} tarihinde bu odada çakışan rezervasyon var");
 
                     var hasUserConflict = await _context.Reservations
                         .AnyAsync(r => r.UserName == dto.UserName &&
-                                      r.StartTime < endTime &&
-                                      r.EndTime > currentDate);
+                                       !r.IsCancelled &&
+                                       r.StartTime < currentEnd &&
+                                       r.EndTime > currentStart);
 
                     if (hasUserConflict)
-                        throw new Exception($"{currentDate:dd.MM.yyyy} tarihinde kullanıcının başka rezervasyonu var");
+                        throw new Exception($"{currentStart:dd.MM.yyyy} tarihinde kullanıcının başka rezervasyonu var");
 
-                    var reservation = new Reservation
+                    reservations.Add(new Reservation
                     {
                         RoomId = dto.RoomId,
                         UserName = dto.UserName,
                         Title = dto.Title,
                         Description = dto.Description,
-                        StartTime = currentDate,
-                        EndTime = endTime,
+                        StartTime = currentStart,
+                        EndTime = currentEnd,
                         ParticipantCount = dto.ParticipantCount,
                         RecurringGroupId = recurringGroup.Id,
                         IsCancelled = false,
-                        CreatedDate = DateTime.Now
-                    };
-
-                    reservations.Add(reservation);
+                        CreatedDate = DateTime.UtcNow
+                    });
                 }
 
-      
-                currentDate = currentDate.AddDays(7 * dto.Interval);
+                currentStart = currentStart.AddDays(7 * dto.Interval);
             }
 
             _context.Reservations.AddRange(reservations);
             await _context.SaveChangesAsync();
 
-            return reservations.Select(r => new ReservationDto
-            {
-                Id = r.Id,
-                RoomId = r.RoomId,
-                RoomName = room.Name,
-                UserName = r.UserName,
-                Title = r.Title,
-                Description = r.Description,
-                StartTime = r.StartTime,
-                EndTime = r.EndTime,
-                ParticipantCount = r.ParticipantCount,
-                RecurringGroupId = r.RecurringGroupId
-            }).ToList();
+            return reservations.Select(r => { r.Room = room; return MapToDto(r); }).ToList();
         }
 
         public async Task<ReservationDto> UpdateReservationAsync(int id, UpdateReservationDto dto)
@@ -250,43 +229,36 @@ namespace MeetingRoomReservation.API.Services
             if (reservation == null)
                 return null;
 
-            if (reservation.StartTime.AddHours(-1) < DateTime.Now)
+            // Zaman karşılaştırmasında UTC kullan
+            if (AsUtc(reservation.StartTime).AddHours(-1) < DateTime.UtcNow)
                 throw new Exception("Toplantıdan 1 saat öncesine kadar güncelleyebilirsiniz");
 
             if (dto.ParticipantCount > reservation.Room.Capacity)
                 throw new Exception($"Katılımcı sayısı ({dto.ParticipantCount}) oda kapasitesini ({reservation.Room.Capacity}) aşıyor");
 
+            var startUtc = ToUtc(dto.StartTime);
+            var endUtc = ToUtc(dto.EndTime);
+
             var hasConflict = await _context.Reservations
                 .AnyAsync(r => r.Id != id &&
-                              r.RoomId == reservation.RoomId &&
-                              r.StartTime < dto.EndTime &&
-                              r.EndTime > dto.StartTime);
+                               r.RoomId == reservation.RoomId &&
+                               !r.IsCancelled &&
+                               r.StartTime < endUtc &&
+                               r.EndTime > startUtc);
 
             if (hasConflict)
                 throw new Exception("Bu saatte oda için başka bir rezervasyon var");
 
             reservation.Title = dto.Title;
             reservation.Description = dto.Description;
-            reservation.StartTime = dto.StartTime;
-            reservation.EndTime = dto.EndTime;
+            reservation.StartTime = startUtc;
+            reservation.EndTime = endUtc;
             reservation.ParticipantCount = dto.ParticipantCount;
-            reservation.ModifiedDate = DateTime.Now;
+            reservation.ModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
-            return new ReservationDto
-            {
-                Id = reservation.Id,
-                RoomId = reservation.RoomId,
-                RoomName = reservation.Room.Name,
-                UserName = reservation.UserName,
-                Title = reservation.Title,
-                Description = reservation.Description,
-                StartTime = reservation.StartTime,
-                EndTime = reservation.EndTime,
-                ParticipantCount = reservation.ParticipantCount,
-                RecurringGroupId = reservation.RecurringGroupId
-            };
+            return MapToDto(reservation);
         }
 
         public async Task<bool> CancelReservationAsync(int id)
@@ -296,11 +268,11 @@ namespace MeetingRoomReservation.API.Services
             if (reservation == null)
                 return false;
 
-            if (reservation.StartTime.AddHours(-1) < DateTime.Now)
+            if (AsUtc(reservation.StartTime).AddHours(-1) < DateTime.UtcNow)
                 throw new Exception("Toplantıdan 1 saat öncesine kadar iptal edebilirsiniz");
 
             reservation.IsCancelled = true;
-            reservation.ModifiedDate = DateTime.Now;
+            reservation.ModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
             return true;
@@ -308,26 +280,18 @@ namespace MeetingRoomReservation.API.Services
 
         public async Task<List<ReservationDto>> GetConflictingReservationsAsync(int roomId, DateTime start, DateTime end)
         {
+            var startUtc = ToUtc(start);
+            var endUtc = ToUtc(end);
+
             var conflicts = await _context.Reservations
                 .Include(r => r.Room)
                 .Where(r => r.RoomId == roomId &&
-                           r.StartTime < end &&
-                           r.EndTime > start)
+                            !r.IsCancelled &&
+                            r.StartTime < endUtc &&
+                            r.EndTime > startUtc)
                 .ToListAsync();
 
-            return conflicts.Select(r => new ReservationDto
-            {
-                Id = r.Id,
-                RoomId = r.RoomId,
-                RoomName = r.Room.Name,
-                UserName = r.UserName,
-                Title = r.Title,
-                Description = r.Description,
-                StartTime = r.StartTime,
-                EndTime = r.EndTime,
-                ParticipantCount = r.ParticipantCount,
-                RecurringGroupId = r.RecurringGroupId
-            }).ToList();
+            return conflicts.Select(MapToDto).ToList();
         }
     }
 }

@@ -6,11 +6,19 @@ using MeetingRoomReservation.API.Services;
 using MeetingRoomReservation.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // DateTime'ları her zaman UTC olarak serialize et
+        // Bu sayede JSON'da "2025-03-10T10:00:00Z" formatında gelir
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    });
 
 // DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -24,12 +32,21 @@ builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 
-
 // Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "Meeting Room Reservation API", Version = "v1" });
+    // Swagger'da DateTime'ların UTC formatında gösterilmesi için
+    c.MapType<DateTime>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+    {
+        Type = "string",
+        Format = "date-time",
+        Example = new Microsoft.OpenApi.Any.OpenApiString("2025-03-10T10:00:00Z")
+    });
+});
 
-// CORS (Angular için)
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -40,6 +57,7 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
 // Global Exception Handler
 app.UseMiddleware<GlobalExceptionHandler>();
 
