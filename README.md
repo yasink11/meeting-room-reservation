@@ -241,7 +241,7 @@ Controllers → Services → DbContext → Database
 
 ## 👤 Geliştirici
 
-Yasin Karaçaö
+Yasin Karaçam
 
 **GitHub:** [https://github.com/yasink11/meeting-room-reservation](https://github.com/yasink11/meeting-room-reservation)
 
