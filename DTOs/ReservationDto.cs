@@ -48,10 +48,12 @@ namespace MeetingRoomReservation.API.DTOs
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public int ParticipantCount { get; set; }
-        public string Pattern { get; set; }       // "Weekly"
-        public int Interval { get; set; }          // 1 = her hafta
-        public string DayOfWeek { get; set; }      // "Monday"
-        public int WeekCount { get; set; }         // Kaç hafta tekrarlanacak
-        public string ExceptionDates { get; set; } // "2025-03-10,2025-04-15" (UTC tarihler)
+
+        public string Pattern { get; set; }
+        public int Interval { get; set; }
+        public string DayOfWeek { get; set; }
+        public int WeekCount { get; set; }
+
+        public List<DateTime> ExceptionDates { get; set; } = new();
     }
 }

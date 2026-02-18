@@ -159,12 +159,6 @@ namespace MeetingRoomReservation.API.Services
             var endUtc = ToUtc(dto.EndTime);
             var duration = endUtc - startUtc;
 
-            var exceptionDatesList = string.IsNullOrEmpty(dto.ExceptionDates)
-                ? new List<DateTime>()
-                : dto.ExceptionDates.Split(',')
-                    .Select(d => ToUtc(DateTime.Parse(d.Trim())).Date)
-                    .ToList();
-
             var recurringGroup = new RecurringGroup
             {
                 Pattern = dto.Pattern,
@@ -172,11 +166,21 @@ namespace MeetingRoomReservation.API.Services
                 DayOfWeek = dto.DayOfWeek,
                 StartDate = startUtc.Date,
                 EndDate = startUtc.AddDays(dto.WeekCount * 7).Date,
-                ExceptionDates = dto.ExceptionDates ?? "",
                 CreatedDate = DateTime.UtcNow
             };
 
             _context.RecurringGroups.Add(recurringGroup);
+            await _context.SaveChangesAsync();
+
+            // Exception Date kayıtları
+            var exceptionEntities = dto.ExceptionDates
+                .Select(date => new RecurringGroupExceptionDate
+                {
+                    RecurringGroupId = recurringGroup.Id,
+                    ExceptionDate = ToUtc(date).Date
+                }).ToList();
+
+            _context.RecurringGroupExceptionDates.AddRange(exceptionEntities);
             await _context.SaveChangesAsync();
 
             var reservations = new List<Reservation>();
@@ -184,7 +188,11 @@ namespace MeetingRoomReservation.API.Services
 
             for (int i = 0; i < dto.WeekCount; i++)
             {
-                if (!exceptionDatesList.Any(ed => ed == currentStart.Date))
+                var isException = await _context.RecurringGroupExceptionDates
+                    .AnyAsync(e => e.RecurringGroupId == recurringGroup.Id &&
+                                   e.ExceptionDate == currentStart.Date);
+
+                if (!isException)
                 {
                     var currentEnd = currentStart + duration;
 

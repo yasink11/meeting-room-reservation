@@ -4,6 +4,7 @@ using MeetingRoomReservation.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MeetingRoomReservation.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260218185425_NormalizeRecurringExceptionDates2")]
+    partial class NormalizeRecurringExceptionDates2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,54 +23,6 @@ namespace MeetingRoomReservation.API.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
-
-            modelBuilder.Entity("MeetingRoomReservation.API.Entities.Equipment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Equipments");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Name = "Projeksiyon"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Name = "Beyaz Tahta"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Name = "Telefon"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Name = "Ses Sistemi"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Name = "Mikrofon"
-                        });
-                });
 
             modelBuilder.Entity("MeetingRoomReservation.API.Entities.RecurringGroup", b =>
                 {
@@ -83,7 +37,8 @@ namespace MeetingRoomReservation.API.Migrations
 
                     b.Property<string>("DayOfWeek")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
@@ -120,7 +75,7 @@ namespace MeetingRoomReservation.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RecurringGroupId");
+                    b.HasIndex("RecurringGroupId", "ExceptionDate");
 
                     b.ToTable("RecurringGroupExceptionDates");
                 });
@@ -195,6 +150,11 @@ namespace MeetingRoomReservation.API.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Equipment")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<int>("Floor")
                         .HasColumnType("int");
 
@@ -220,7 +180,8 @@ namespace MeetingRoomReservation.API.Migrations
                         {
                             Id = 1,
                             Capacity = 10,
-                            CreatedDate = new DateTime(2026, 2, 18, 19, 14, 22, 971, DateTimeKind.Utc).AddTicks(8197),
+                            CreatedDate = new DateTime(2026, 2, 18, 18, 54, 25, 213, DateTimeKind.Utc).AddTicks(144),
+                            Equipment = "Projeksiyon,Beyaz Tahta,Telefon",
                             Floor = 1,
                             IsActive = true,
                             Name = "Toplantı Odası A"
@@ -229,7 +190,8 @@ namespace MeetingRoomReservation.API.Migrations
                         {
                             Id = 2,
                             Capacity = 6,
-                            CreatedDate = new DateTime(2026, 2, 18, 19, 14, 22, 971, DateTimeKind.Utc).AddTicks(8200),
+                            CreatedDate = new DateTime(2026, 2, 18, 18, 54, 25, 213, DateTimeKind.Utc).AddTicks(148),
+                            Equipment = "Projeksiyon,Telefon",
                             Floor = 2,
                             IsActive = true,
                             Name = "Toplantı Odası B"
@@ -238,72 +200,11 @@ namespace MeetingRoomReservation.API.Migrations
                         {
                             Id = 3,
                             Capacity = 50,
-                            CreatedDate = new DateTime(2026, 2, 18, 19, 14, 22, 971, DateTimeKind.Utc).AddTicks(8201),
+                            CreatedDate = new DateTime(2026, 2, 18, 18, 54, 25, 213, DateTimeKind.Utc).AddTicks(149),
+                            Equipment = "Projeksiyon,Ses Sistemi,Mikrofon,Beyaz Tahta",
                             Floor = 3,
                             IsActive = true,
                             Name = "Konferans Salonu"
-                        });
-                });
-
-            modelBuilder.Entity("RoomEquipments", b =>
-                {
-                    b.Property<int>("EquipmentId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RoomId")
-                        .HasColumnType("int");
-
-                    b.HasKey("EquipmentId", "RoomId");
-
-                    b.HasIndex("RoomId");
-
-                    b.ToTable("RoomEquipments");
-
-                    b.HasData(
-                        new
-                        {
-                            EquipmentId = 1,
-                            RoomId = 1
-                        },
-                        new
-                        {
-                            EquipmentId = 2,
-                            RoomId = 1
-                        },
-                        new
-                        {
-                            EquipmentId = 3,
-                            RoomId = 1
-                        },
-                        new
-                        {
-                            EquipmentId = 1,
-                            RoomId = 2
-                        },
-                        new
-                        {
-                            EquipmentId = 3,
-                            RoomId = 2
-                        },
-                        new
-                        {
-                            EquipmentId = 1,
-                            RoomId = 3
-                        },
-                        new
-                        {
-                            EquipmentId = 2,
-                            RoomId = 3
-                        },
-                        new
-                        {
-                            EquipmentId = 4,
-                            RoomId = 3
-                        },
-                        new
-                        {
-                            EquipmentId = 5,
-                            RoomId = 3
                         });
                 });
 
@@ -334,21 +235,6 @@ namespace MeetingRoomReservation.API.Migrations
                     b.Navigation("RecurringGroup");
 
                     b.Navigation("Room");
-                });
-
-            modelBuilder.Entity("RoomEquipments", b =>
-                {
-                    b.HasOne("MeetingRoomReservation.API.Entities.Equipment", null)
-                        .WithMany()
-                        .HasForeignKey("EquipmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MeetingRoomReservation.API.Entities.Room", null)
-                        .WithMany()
-                        .HasForeignKey("RoomId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("MeetingRoomReservation.API.Entities.RecurringGroup", b =>
