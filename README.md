@@ -158,18 +158,25 @@ Case study özel zorluğu: "Her Pazartesi 10:00-11:00, 8 hafta, 3. hafta tatil"
 ---
 
 ```mermaid
-
 erDiagram
-
     ROOMS {
         int Id PK
         nvarchar Name
         int Capacity
         int Floor
-        nvarchar Equipment
         bit IsActive
         datetime CreatedDate
         datetime ModifiedDate
+    }
+
+    EQUIPMENTS {
+        int Id PK
+        nvarchar Name
+    }
+
+    ROOMEQUIPMENTS {
+        int RoomId FK
+        int EquipmentId FK
     }
 
     RESERVATIONS {
@@ -181,7 +188,6 @@ erDiagram
         nvarchar Description
         datetime StartTime
         datetime EndTime
-        int ParticipantCount
         bit IsCancelled
         datetime CreatedDate
         datetime ModifiedDate
@@ -194,12 +200,21 @@ erDiagram
         nvarchar DayOfWeek
         datetime StartDate
         datetime EndDate
-        nvarchar ExceptionDates
         datetime CreatedDate
     }
 
+    RECURRINGGROUPEXCEPTIONDATES {
+        int Id PK
+        int RecurringGroupId FK
+        datetime ExceptionDate
+    }
+
+
+    ROOMS ||--o{ ROOMEQUIPMENTS : "has"
+    EQUIPMENTS ||--o{ ROOMEQUIPMENTS : "belongs to"
     ROOMS ||--o{ RESERVATIONS : "1 - N"
-    RECURRINGGROUPS ||--o{ RESERVATIONS : "1 - N (Optional)"
+    RECURRINGGROUPS ||--o{ RESERVATIONS : "1 - N"
+    RECURRINGGROUPS ||--o{ RECURRINGGROUPEXCEPTIONDATES : "has exceptions"
 ```
 ### 📌 Veri Modeli Notları
 
